@@ -403,13 +403,20 @@ character
 
 }
 
-function createCard(rarity,character){
+function createCard(rarity, character){
 
-if(
-character === "伝説の生物 拓哉"
-){
+let stars = "★".repeat(rarity);
+let specialImage = "";
 
-specialImage = `
+if(character === "伝説の生物　拓哉" || character === "伝説の生物 拓哉"){
+
+return `
+<div class="card">
+
+<div class="star5">
+★★★★★
+</div>
+
 <img
 src="takuya.png"
 style="
@@ -419,14 +426,11 @@ border-radius:15px;
 margin:10px;
 box-shadow:0 0 30px gold;
 ">
+
+<h2>👑 伝説の生物 拓哉 👑</h2>
+
+</div>
 `;
-  
-let stars = "★".repeat(rarity);
-
-let specialImage = "";
-
-
-
 }
 
 return `
