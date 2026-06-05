@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アニメ風ガチャシミュレーター</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:sans-serif;
+}
+
+body{
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+text-align:center;
+min-height:100vh;
+padding:20px;
+overflow-x:hidden;
+}
+
+h1{
+font-size:42px;
+margin-bottom:10px;
+color:gold;
+text-shadow:0 0 20px gold;
+}
+
+#gemBox{
+font-size:24px;
+margin-bottom:20px;
+}
+
+button{
+padding:12px 25px;
+margin:5px;
+border:none;
+border-radius:12px;
+cursor:pointer;
+font-size:18px;
+font-weight:bold;
+transition:0.2s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+#singleBtn{
+background:#3b82f6;
+color:white;
+}
+
+#tenBtn{
+background:#8b5cf6;
+color:white;
+}
+
+#addGemBtn{
+background:#10b981;
+color:white;
+}
+
+#result{
+margin-top:25px;
+min-height:150px;
+}
+
+.card{
+background:#1e293b;
+padding:15px;
+margin:10px auto;
+border-radius:15px;
+max-width:500px;
+box-shadow:0 0 10px rgba(255,255,255,0.2);
+animation:appear 0.4s;
+}
+
+@keyframes appear{
+from{
+opacity:0;
+transform:translateY(20px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.star2{
+color:#9ca3af;
+}
+
+.star3{
+color:#22c55e;
+}
+
+.star4{
+color:#3b82f6;
+}
+
+.star5{
+color:gold;
+font-size:32px;
+text-shadow:
+0 0 10px gold,
+0 0 20px gold,
+0 0 40px gold;
+animation:rainbowText 1s infinite;
+}
+
+@keyframes rainbowText{
+0%{filter:hue-rotate(0deg);}
+100%{filter:hue-rotate(360deg);}
+}
+
+#pityBox{
+margin-top:10px;
+font-size:18px;
+}
+
+#collection{
+margin-top:30px;
+background:#111827;
+padding:20px;
+border-radius:15px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:10px;
+margin-top:15px;
+}
+
+.bookCard{
+background:#1e293b;
+padding:10px;
+border-radius:10px;
+}
+
+.rainbow{
+animation:rainbowBg 1s infinite;
+}
+
+@keyframes rainbowBg{
+0%{background:#ff0000;}
+20%{background:#ffff00;}
+40%{background:#00ff00;}
+60%{background:#00ffff;}
+80%{background:#0000ff;}
+100%{background:#ff00ff;}
+}
+
+#effect{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+display:none;
+justify-content:center;
+align-items:center;
+font-size:60px;
+font-weight:bold;
+z-index:999;
+color:white;
+text-shadow:0 0 20px white;
+}
+
+</style>
+</head>
+<body>
+
+<h1>✨アニメ風ガチャ✨</h1>
+
+<div id="gemBox">
+💎 ジェム: <span id="gems">10000</span>
+</div>
+
+<div id="pityBox">
+天井カウント:
+<span id="pity">0</span>/90
+</div>
+
+<button id="singleBtn">単発ガチャ (300)</button>
+<button id="tenBtn">10連ガチャ (3000)</button>
+<button id="addGemBtn">ジェム10000追加</button>
+
+<div id="result"></div>
+
+<div id="effect"></div>
+
+<div id="collection">
+<h2>📖 図鑑</h2>
+
+<div class="grid" id="book"></div>
+
+</div>
+
+<script>
+
+const characters = {
+
+5:[
+"炎神アグニス",
+"時空魔導王クロノス",
+"天空姫セレスティア",
+"終焉龍バハムート",
+"神剣の勇者レオン",
+"伝説の生物　拓哉"
+],
+
+4:[
+"聖騎士アーサー",
+"氷魔導士フレア",
+"影忍シノ",
+"雷剣士ライガ"
+],
+
+3:[
+"見習い魔法使い",
+"若き剣士",
+"森の弓使い",
+"冒険者"
+],
+
+2:[
+"村人",
+"スライム",
+"ゴブリン",
+"木の精霊"
+]
+
+};
+
+const allCharacters = [
+...characters[5],
+...characters[4],
+...characters[3],
+...characters[2]
+];
+  let gems = Number(localStorage.getItem("gems")) || 10000;
+let pity = Number(localStorage.getItem("pity")) || 0;
+
+let collection =
+JSON.parse(localStorage.getItem("collection")) || [];
+
+const gemsText = document.getElementById("gems");
+const pityText = document.getElementById("pity");
+const result = document.getElementById("result");
+const book = document.getElementById("book");
+const effect = document.getElementById("effect");
+
+updateUI();
+drawBook();
+
+function saveData(){
+
+localStorage.setItem("gems",gems);
+localStorage.setItem("pity",pity);
+
+localStorage.setItem(
+"collection",
+JSON.stringify(collection)
+);
+
+}
+
+function updateUI(){
+
+gemsText.textContent = gems;
+pityText.textContent = pity;
+
+saveData();
+
+}
+
+function drawBook(){
+
+book.innerHTML = "";
+
+allCharacters.forEach(char=>{
+
+const owned = collection.includes(char);
+
+const div = document.createElement("div");
+
+div.className = "bookCard";
+
+div.innerHTML = owned
+? `✅ ${char}`
+: `❓ ?????`;
+
+book.appendChild(div);
+
+});
+
+}
+
+function playSound(freq,time=0.15){
+
+const audio =
+new (window.AudioContext ||
+window.webkitAudioContext)();
+
+const osc = audio.createOscillator();
+const gain = audio.createGain();
+
+osc.connect(gain);
+gain.connect(audio.destination);
+
+osc.frequency.value = freq;
+
+osc.start();
+
+gain.gain.setValueAtTime(
+0.2,
+audio.currentTime
+);
+
+gain.gain.exponentialRampToValueAtTime(
+0.0001,
+audio.currentTime + time
+);
+
+osc.stop(audio.currentTime + time);
+
+}
+
+function showEffect(text){
+
+effect.style.display = "flex";
+effect.innerHTML = text;
+
+setTimeout(()=>{
+
+effect.style.display = "none";
+
+},2000);
+
+}
+
+function addCollection(name){
+
+if(!collection.includes(name)){
+
+collection.push(name);
+
+drawBook();
+saveData();
+
+}
+
+}
+
+function getRandomCharacter(forceFive=false){
+
+let rarity;
+
+if(forceFive){
+
+rarity = 5;
+
+}else{
+
+const r = Math.random()*100;
+
+if(r < 1){
+
+rarity = 5;
+
+}else if(r < 10){
+
+rarity = 4;
+
+}else if(r < 40){
+
+rarity = 3;
+
+}else{
+
+rarity = 2;
+
+}
+
+}
+
+const pool = characters[rarity];
+
+const character =
+pool[Math.floor(Math.random()*pool.length)];
+
+return {
+rarity,
+character
+};
+
+}
+
+function createCard(rarity,character){
+
+let stars = "★".repeat(rarity);
+
+let specialImage = "";
+
+if(
+character === "伝説の勇者 拓哉" ||
+character === "創世神 拓哉" ||
+character === "覚醒した拓哉"
+){
+
+specialImage = `
+<img
+src="takuya.png"
+style="
+width:250px;
+max-width:90%;
+border-radius:15px;
+margin:10px;
+box-shadow:0 0 30px gold;
+">
+`;
+
+}
+
+return `
+<div class="card">
+
+<div class="star${rarity}">
+${stars}
+</div>
+
+${specialImage}
+
+<h2>${character}</h2>
+
+</div>
+`;
+
+}
+
+function performPull(forceFive=false){
+
+const resultData =
+getRandomCharacter(forceFive);
+
+const rarity =
+resultData.rarity;
+
+const character =
+resultData.character;
+
+addCollection(character);
+
+if(rarity === 5){
+
+document.body.classList.add("rainbow");
+
+playSound(1200,0.4);
+
+showEffect("🌈 ★★★★★確定！ 🌈");
+
+setTimeout(()=>{
+
+document.body.classList.remove("rainbow");
+
+},2000);
+
+}
+
+if(
+character === "伝説の勇者 拓哉" ||
+character === "創世神 拓哉" ||
+character === "覚醒した拓哉"
+){
+
+showEffect("👑 拓哉降臨!! 👑");
+
+playSound(1800,0.8);
+
+}
+
+if(rarity === 4){
+
+playSound(900);
+
+}
+
+if(rarity <= 3){
+
+playSound(500);
+
+}
+
+return {
+rarity,
+character,
+html:createCard(
+rarity,
+character
+)
+};
+
+}
+
+document
+.getElementById("addGemBtn")
+.onclick = ()=>{
+
+gems += 10000;
+
+updateUI();
+
+showEffect("💎 +10000ジェム");
+
+};
+document
+.getElementById("singleBtn")
+.onclick = ()=>{
+
+if(gems < 300){
+
+showEffect("💎ジェム不足");
+
+return;
+
+}
+
+gems -= 300;
+
+pity++;
+
+let forceFive = false;
+
+if(pity >= 90){
+
+forceFive = true;
+pity = 0;
+
+showEffect("🔥 天井発動！ 🔥");
+
+}
+
+const pull =
+performPull(forceFive);
+
+if(pull.rarity === 5){
+
+pity = 0;
+
+}
+
+result.innerHTML = pull.html;
+
+updateUI();
+
+};
+
+document
+.getElementById("tenBtn")
+.onclick = ()=>{
+
+if(gems < 3000){
+
+showEffect("💎ジェム不足");
+
+return;
+
+}
+
+gems -= 3000;
+
+let html = "";
+
+for(let i=0;i<10;i++){
+
+pity++;
+
+let forceFive = false;
+
+if(pity >= 90){
+
+forceFive = true;
+pity = 0;
+showEffect("🔥 天井発動！ 🔥");
+
+}
+
+const pull =
+performPull(forceFive);
+
+if(pull.rarity === 5){
+
+pity = 0;
+
+}
+
+html += pull.html;
+
+}
+
+result.innerHTML = html;
+
+updateUI();
+
+};
+
+updateUI();
+drawBook();
+</script>
+
+</body>
+</html>
