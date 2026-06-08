@@ -70,6 +70,19 @@ margin-top:25px;
 min-height:150px;
 }
 
+#historyBox{
+margin-top:30px;
+background:#111827;
+padding:20px;
+border-radius:15px;
+}
+
+#historyList{
+max-height:300px;
+overflow-y:auto;
+text-align:left;
+}
+
 .card{
 background:#1e293b;
 padding:15px;
@@ -156,6 +169,23 @@ animation:rainbowBg 1s infinite;
 100%{background:#ff00ff;}
 }
 
+.shake{
+
+animation:shake .5s;
+
+}
+
+@keyframes shake{
+
+0%{transform:translateX(0);}
+20%{transform:translateX(-10px);}
+40%{transform:translateX(10px);}
+60%{transform:translateX(-10px);}
+80%{transform:translateX(10px);}
+100%{transform:translateX(0);}
+
+}
+
 #effect{
 position:fixed;
 top:0;
@@ -171,6 +201,37 @@ font-weight:bold;
 z-index:999;
 color:white;
 text-shadow:0 0 20px white;
+}
+
+#achievementBox{
+margin-top:30px;
+background:#111827;
+padding:20px;
+border-radius:15px;
+}
+
+.summoning{
+
+animation:summon 1.5s linear;
+
+}
+
+@keyframes summon{
+
+0%{
+transform:scale(0);
+opacity:0;
+}
+
+50%{
+transform:scale(1.3);
+opacity:1;
+}
+
+100%{
+transform:scale(1);
+}
+
 }
 
 </style>
@@ -203,6 +264,16 @@ text-shadow:0 0 20px white;
 
 </div>
 
+<div id="historyBox">
+<h2>📜 ガチャ履歴</h2>
+<div id="historyList"></div>
+</div>
+
+<div id="achievementBox">
+<h2>🏆 実績</h2>
+<div id="achievements"></div>
+</div>
+  
 <script>
 
 const characters = {
@@ -256,6 +327,8 @@ const pityText = document.getElementById("pity");
 const result = document.getElementById("result");
 const book = document.getElementById("book");
 const effect = document.getElementById("effect");
+let history =
+JSON.parse(localStorage.getItem("history")) || [];
 
 updateUI();
 drawBook();
@@ -449,6 +522,76 @@ ${specialImage}
 
 }
 
+function addHistory(text){
+
+history.unshift(text);
+
+if(history.length > 50){
+history.pop();
+}
+
+localStorage.setItem(
+"history",
+JSON.stringify(history)
+);
+
+drawHistory();
+
+}
+
+function drawHistory(){
+
+const list =
+document.getElementById("historyList");
+
+list.innerHTML = history
+.map(v=>`<div>${v}</div>`)
+.join("");
+
+}
+  
+let achievements =
+JSON.parse(
+localStorage.getItem("achievements")
+) || [];
+
+function unlock(name){
+
+if(
+!achievements.includes(name)
+){
+
+achievements.push(name);
+
+localStorage.setItem(
+"achievements",
+JSON.stringify(achievements)
+);
+
+drawAchievements();
+
+showEffect(
+"🏆実績解除！ " + name
+);
+
+}
+
+}
+
+function drawAchievements(){
+
+const div =
+document.getElementById(
+"achievements"
+);
+
+div.innerHTML =
+achievements
+.map(v=>`<div>${v}</div>`)
+.join("");
+
+}
+  
 function performPull(forceFive=false){
 
 const resultData =
@@ -462,9 +605,14 @@ resultData.character;
 
 addCollection(character);
 
+addHistory(
+"★".repeat(rarity) + " " + character
+);
+
 if(rarity === 5){
 
 document.body.classList.add("rainbow");
+document.body.classList.add("shake");
 
 playSound(1200,0.4);
 
@@ -473,15 +621,14 @@ showEffect("🌈 ★★★★★確定！ 🌈");
 setTimeout(()=>{
 
 document.body.classList.remove("rainbow");
+document.body.classList.remove("shake");
 
 },2000);
 
 }
 
 if(
-character === "伝説の勇者 拓哉" ||
-character === "創世神 拓哉" ||
-character === "覚醒した拓哉"
+character === "伝説の生物　拓哉"||"伝説の生物 拓哉"
 ){
 
 showEffect("👑 拓哉降臨!! 👑");
@@ -524,61 +671,21 @@ updateUI();
 showEffect("💎 +10000ジェム");
 
 };
-document
-.getElementById("singleBtn")
-.onclick = ()=>{
-
-if(gems < 300){
-
-showEffect("💎ジェム不足");
-
-return;
-
-}
-
-gems -= 300;
-
-pity++;
-
-let forceFive = false;
-
-if(pity >= 90){
-
-forceFive = true;
-pity = 0;
-
-showEffect("🔥 天井発動！ 🔥");
-
-}
-
-const pull =
-performPull(forceFive);
-
-if(pull.rarity === 5){
-
-pity = 0;
-
-}
-
-result.innerHTML = pull.html;
-
-updateUI();
-
-};
-
-document
-.getElementById("tenBtn")
-.onclick = ()=>{
+document.getElementById("tenBtn").onclick = ()=>{
 
 if(gems < 3000){
 
 showEffect("💎ジェム不足");
-
 return;
 
 }
 
 gems -= 3000;
+
+result.innerHTML =
+"<h2 class='summoning'>✨召喚中...✨</h2>";
+
+setTimeout(()=>{
 
 let html = "";
 
@@ -592,17 +699,13 @@ if(pity >= 90){
 
 forceFive = true;
 pity = 0;
-showEffect("🔥 天井発動！ 🔥");
 
 }
 
-const pull =
-performPull(forceFive);
+const pull = performPull(forceFive);
 
 if(pull.rarity === 5){
-
 pity = 0;
-
 }
 
 html += pull.html;
@@ -613,8 +716,15 @@ result.innerHTML = html;
 
 updateUI();
 
+},1500);
+
 };
 
+
+return;
+
+drawAchievements();
+drawHistory();
 updateUI();
 drawBook();
 </script>
